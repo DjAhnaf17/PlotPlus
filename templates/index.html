@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}House Price Predictor{% endblock %}
+{% block content %}
+<div class="main-dashboard">
+    <div class="hero-section">
+        <h1>Predict Property Value with AI</h1>
+        <p>Enter the specifics of your desired property and let our Machine Learning model estimate the cost.</p>
+    </div>
+    <div class="glass-card dashboard-card">
+        <form id="prediction-form">
+            <div class="grid-form">
+                <div class="form-group">
+                    <label for="area">Area (Sq.ft)</label>
+                    <input type="number" id="area" name="area" required placeholder="e.g. 1500" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="rooms">Total Rooms</label>
+                    <input type="number" id="rooms" name="rooms" required placeholder="e.g. 3" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="kitchen">Number of Kitchens</label>
+                    <input type="number" id="kitchen" name="kitchen" required placeholder="e.g. 1" min="0">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-large" id="predict-btn">
+                    <span class="btn-text">Estimate Price</span>
+                    <span class="loader hidden"></span>
+                </button>
+            </div>
+        </form>
+        <div id="result-container" class="result-container hidden">
+            <h3>Estimated Property Value</h3>
+            <div class="price-reveal" id="predicted-price">₹ 0.00</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% endblock %}

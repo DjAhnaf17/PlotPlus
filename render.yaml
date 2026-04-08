@@ -1,0 +1,13 @@
+services:
+  # The Flask Web Application
+  - type: web
+    name: plotplus-web
+    plan: free # Free tier or upgrade
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DATABASE_URL
+        sync: false # Render will prompt you to enter the value for this manually via the dashboard, keeping it secure!
+      - key: SECRET_KEY
+        generateValue: true # Render will securely generate a random string for you automatically

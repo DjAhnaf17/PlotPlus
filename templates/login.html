@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Login - PlotPlus{% endblock %}
+{% block content %}
+<div class="auth-container">
+    <div class="glass-card auth-card">
+        <h2>Welcome Back</h2>
+        <p class="subtitle">Sign in to PlotPlus</p>
+        <form method="POST" action="">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required placeholder="Enter username">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="Enter password">
+            </div>
+            <button type="submit" class="btn btn-full btn-primary">Login</button>
+        </form>
+        <p class="text-center mt-3">Don't have an account? <a href="{{ url_for('register') }}" class="text-link">Register Here</a></p>
+    </div>
+</div>
+{% endblock %}
