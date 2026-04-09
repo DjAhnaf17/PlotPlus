@@ -1,11 +1,8 @@
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 
-db = SQLAlchemy()
-
-class User(UserMixin, db.Model):
-    __tablename__ = 'house_users'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(150), unique=True, nullable=False)
-    email = db.Column(db.String(150), unique=True, nullable=False)
-    password_hash = db.Column(db.String(256), nullable=False)
+class User(UserMixin):
+    def __init__(self, id, username, email, password_hash):
+        self.id = str(id)
+        self.username = username
+        self.email = email
+        self.password_hash = password_hash

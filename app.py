@@ -1,20 +1,17 @@
 import os
 import pickle
+import json
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
-from models import db, User
+from models import User
 
 load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default_secret')
-# Fallback to local SQLite if DATABASE_URL is not set or if PostgreSQL connection fails
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///app.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db.init_app(app)
 bcrypt = Bcrypt(app)
 
 login_manager = LoginManager()
@@ -22,9 +19,33 @@ login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
 login_manager.init_app(app)
 
+USERS_FILE = os.path.join(os.path.dirname(__file__), 'users.json')
+
+def load_users():
+    if not os.path.exists(USERS_FILE):
+        return []
+    with open(USERS_FILE, 'r') as f:
+        try:
+            return json.load(f)
+        except json.JSONDecodeError:
+            return []
+
+def save_users(users):
+    with open(USERS_FILE, 'w') as f:
+        json.dump(users, f, indent=4)
+
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    users = load_users()
+    for u_data in users:
+        if str(u_data.get('id')) == str(user_id):
+            return User(
+                id=u_data['id'],
+                username=u_data['username'],
+                email=u_data['email'],
+                password_hash=u_data['password_hash']
+            )
+    return None
 
 # Load ML Model
 model_path = os.path.join(os.path.dirname(__file__), 'Model', 'model.pkl')
@@ -34,15 +55,6 @@ try:
 except FileNotFoundError:
     print("Warning: ML Model not found. Please run Model/train.py first.")
     ml_model = None
-
-# Initialize Database securely within application context
-with app.app_context():
-    try:
-        db.create_all()
-    except Exception as e:
-        print(f"Warning: Database connection failed. Falling back to SQLite. Error: {e}")
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
-        db.create_all()
 
 @app.route('/')
 @login_required
@@ -73,9 +85,18 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
-        user = User.query.filter_by(username=username).first()
-        if user and bcrypt.check_password_hash(user.password_hash, password):
-            login_user(user)
+        
+        users = load_users()
+        user_data = next((u for u in users if u['username'] == username), None)
+        
+        if user_data and bcrypt.check_password_hash(user_data['password_hash'], password):
+            user_obj = User(
+                id=user_data['id'],
+                username=user_data['username'],
+                email=user_data['email'],
+                password_hash=user_data['password_hash']
+            )
+            login_user(user_obj)
             return redirect(url_for('index'))
         else:
             flash('Login Unsuccessful. Please check username and password', 'danger')
@@ -99,20 +120,30 @@ def register():
             flash('Passwords must match.', 'danger')
             return redirect(url_for('register'))
 
-        existing_user = User.query.filter_by(username=username).first()
-        if existing_user:
+        users = load_users()
+        
+        if any(u['username'] == username for u in users):
             flash('Username already exists.', 'danger')
             return redirect(url_for('register'))
 
-        existing_email = User.query.filter_by(email=email).first()
-        if existing_email:
+        if any(u['email'] == email for u in users):
             flash('Email already registered.', 'danger')
             return redirect(url_for('register'))
 
         hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
-        user = User(username=username, email=email, password_hash=hashed_password)
-        db.session.add(user)
-        db.session.commit()
+        
+        new_id = 1 if not users else max(u['id'] for u in users) + 1
+        
+        new_user = {
+            'id': new_id,
+            'username': username,
+            'email': email,
+            'password_hash': hashed_password
+        }
+        
+        users.append(new_user)
+        save_users(users)
+        
         flash('Account created! Proceed to login.', 'success')
         return redirect(url_for('login'))
     return render_template('register.html', title='Register')

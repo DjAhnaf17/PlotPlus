@@ -28,3 +28,6 @@ app.db
 dist/
 build/
 *.egg-info/
+
+# Local users storage
+users.json
